@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import HomeTab from '@/components/HomeTab';
+import SettingsTab from '@/components/SettingsTab';
+import { StatusTab, ServersTab, LogsTab, HelpTab } from '@/components/OtherTabs';
 
 type TabType = 'home' | 'settings' | 'status' | 'servers' | 'logs' | 'help';
 
@@ -161,404 +158,38 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="home" className="space-y-6 animate-fade-in">
-            <Card className="glassmorphism p-8 text-center">
-              <div className="flex flex-col items-center space-y-6">
-                <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 ${
-                  isConnected ? 'animate-pulse-glow gradient-primary' : 'bg-muted'
-                }`}>
-                  <Icon 
-                    name={isConnected ? "Shield" : "ShieldOff"} 
-                    size={64} 
-                    className="text-white"
-                  />
-                </div>
-                
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">
-                    {isConnected ? 'Защита активна' : 'Не защищено'}
-                  </h2>
-                  <Badge variant={isConnected ? "default" : "secondary"} className="text-lg px-4 py-1">
-                    {isConnected ? 'Подключено' : 'Отключено'}
-                  </Badge>
-                </div>
-
-                <Button
-                  size="lg"
-                  onClick={handleConnectionToggle}
-                  className={`w-64 h-14 text-lg font-semibold transition-all duration-300 ${
-                    isConnected 
-                      ? 'gradient-primary hover:opacity-90' 
-                      : 'bg-muted hover:bg-muted/80'
-                  }`}
-                >
-                  {isConnected ? 'Отключить' : 'Подключить'}
-                </Button>
-              </div>
-            </Card>
-
-            {isConnected && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center space-x-3">
-                      <Icon name="Zap" size={24} className="text-accent" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Скорость</p>
-                        <p className="text-xl font-bold">{stats.speed}</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center space-x-3">
-                      <Icon name="Timer" size={24} className="text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Задержка</p>
-                        <p className="text-xl font-bold">{stats.latency}</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center space-x-3">
-                      <Icon name="Clock" size={24} className="text-secondary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Время работы</p>
-                        <p className="text-xl font-bold">{stats.uptime}</p>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center space-x-3">
-                      <Icon name="Database" size={24} className="text-accent" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Данные</p>
-                        <p className="text-xl font-bold">{stats.dataSaved}</p>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in">
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold">График скорости</h3>
-                      <Icon name="TrendingUp" size={20} className="text-accent" />
-                    </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={speedData}>
-                        <defs>
-                          <linearGradient id="speedGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(199, 89%, 52%)" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="hsl(199, 89%, 52%)" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 6%, 18%)" />
-                        <XAxis dataKey="time" stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
-                        <YAxis stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(240, 10%, 8%)', 
-                            border: '1px solid hsl(240, 6%, 18%)',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="speed" 
-                          stroke="hsl(199, 89%, 52%)" 
-                          strokeWidth={2}
-                          fill="url(#speedGradient)" 
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-
-                  <Card className="glassmorphism p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold">График задержки</h3>
-                      <Icon name="Activity" size={20} className="text-primary" />
-                    </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={latencyData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 6%, 18%)" />
-                        <XAxis dataKey="time" stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
-                        <YAxis stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(240, 10%, 8%)', 
-                            border: '1px solid hsl(240, 6%, 18%)',
-                            borderRadius: '8px'
-                          }} 
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="latency" 
-                          stroke="hsl(263, 70%, 63%)" 
-                          strokeWidth={2}
-                          dot={{ fill: 'hsl(263, 70%, 63%)', r: 3 }}
-                          activeDot={{ r: 5 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Card>
-                </div>
-
-                <Card className="glassmorphism p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold">Экспорт статистики</h3>
-                    <Icon name="Download" size={20} className="text-primary" />
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Button onClick={() => exportStats('json')} variant="outline" className="flex-1 min-w-[120px]">
-                      <Icon name="FileJson" size={16} className="mr-2" />
-                      JSON
-                    </Button>
-                    <Button onClick={() => exportStats('csv')} variant="outline" className="flex-1 min-w-[120px]">
-                      <Icon name="Sheet" size={16} className="mr-2" />
-                      CSV
-                    </Button>
-                    <Button onClick={() => exportStats('txt')} variant="outline" className="flex-1 min-w-[120px]">
-                      <Icon name="FileText" size={16} className="mr-2" />
-                      TXT
-                    </Button>
-                  </div>
-                </Card>
-              </>
-            )}
+          <TabsContent value="home">
+            <HomeTab
+              isConnected={isConnected}
+              handleConnectionToggle={handleConnectionToggle}
+              stats={stats}
+              speedData={speedData}
+              latencyData={latencyData}
+              exportStats={exportStats}
+            />
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-4 animate-fade-in">
-            <Card className="glassmorphism p-6">
-              <h3 className="text-xl font-bold mb-4">Основные настройки</h3>
-              
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Power" size={20} className="text-primary" />
-                    <div>
-                      <p className="font-semibold">Автоматическое подключение</p>
-                      <p className="text-sm text-muted-foreground">Включать при запуске приложения</p>
-                    </div>
-                  </div>
-                  <Switch checked={autoConnect} onCheckedChange={setAutoConnect} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Lock" size={20} className="text-primary" />
-                    <div>
-                      <p className="font-semibold">DNS-over-HTTPS (DoH)</p>
-                      <p className="text-sm text-muted-foreground">Шифрование DNS запросов</p>
-                    </div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Shield" size={20} className="text-primary" />
-                    <div>
-                      <p className="font-semibold">Блокировка рекламы</p>
-                      <p className="text-sm text-muted-foreground">Фильтровать рекламные запросы</p>
-                    </div>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Shuffle" size={20} className="text-primary" />
-                    <div>
-                      <p className="font-semibold">Ротация серверов</p>
-                      <p className="text-sm text-muted-foreground">Автоматическая смена для надёжности</p>
-                    </div>
-                  </div>
-                  <Switch />
-                </div>
-              </div>
-            </Card>
+          <TabsContent value="settings">
+            <SettingsTab
+              autoConnect={autoConnect}
+              setAutoConnect={setAutoConnect}
+            />
           </TabsContent>
 
-          <TabsContent value="status" className="space-y-4 animate-fade-in">
-            <Card className="glassmorphism p-6">
-              <h3 className="text-xl font-bold mb-4">Статус соединения</h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Качество соединения</span>
-                    <span className="text-sm text-muted-foreground">Отлично</span>
-                  </div>
-                  <Progress value={92} className="h-2" />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Уровень шифрования</span>
-                    <span className="text-sm text-muted-foreground">256-bit AES</span>
-                  </div>
-                  <Progress value={100} className="h-2" />
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Загрузка сервера</span>
-                    <span className="text-sm text-muted-foreground">45%</span>
-                  </div>
-                  <Progress value={45} className="h-2" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-                  <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle2" size={20} className="text-green-500" />
-                    <span className="text-sm">IPv4 защищён</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle2" size={20} className="text-green-500" />
-                    <span className="text-sm">IPv6 защищён</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle2" size={20} className="text-green-500" />
-                    <span className="text-sm">DNS утечек нет</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle2" size={20} className="text-green-500" />
-                    <span className="text-sm">WebRTC защищён</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+          <TabsContent value="status">
+            <StatusTab />
           </TabsContent>
 
-          <TabsContent value="servers" className="space-y-4 animate-fade-in">
-            <Card className="glassmorphism p-6">
-              <h3 className="text-xl font-bold mb-4">Доступные серверы</h3>
-              
-              <div className="space-y-3">
-                {servers.map((server, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-lg bg-card/50 hover:bg-card/70 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <Icon name="Server" size={24} className="text-primary" />
-                      <div>
-                        <p className="font-semibold">{server.name}</p>
-                        <p className="text-sm text-muted-foreground">Ping: {server.ping} ms</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Загрузка</p>
-                        <p className="font-semibold">{server.load}%</p>
-                      </div>
-                      <Badge variant={server.status === 'online' ? 'default' : 'secondary'}>
-                        {server.status === 'online' ? 'Онлайн' : 'Офлайн'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+          <TabsContent value="servers">
+            <ServersTab servers={servers} />
           </TabsContent>
 
-          <TabsContent value="logs" className="space-y-4 animate-fade-in">
-            <Card className="glassmorphism p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">Журнал событий</h3>
-                <Button variant="outline" size="sm">
-                  <Icon name="Download" size={16} className="mr-2" />
-                  Экспорт
-                </Button>
-              </div>
-              
-              <div className="space-y-2 font-mono text-sm">
-                {logs.map((log, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-3 p-3 rounded-lg bg-card/30 hover:bg-card/50 transition-all"
-                  >
-                    <span className="text-muted-foreground">{log.time}</span>
-                    <Icon
-                      name={
-                        log.type === 'success' ? 'CheckCircle2' :
-                        log.type === 'warning' ? 'AlertTriangle' :
-                        'Info'
-                      }
-                      size={16}
-                      className={
-                        log.type === 'success' ? 'text-green-500 mt-0.5' :
-                        log.type === 'warning' ? 'text-yellow-500 mt-0.5' :
-                        'text-blue-500 mt-0.5'
-                      }
-                    />
-                    <span className="flex-1">{log.message}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+          <TabsContent value="logs">
+            <LogsTab logs={logs} />
           </TabsContent>
 
-          <TabsContent value="help" className="space-y-4 animate-fade-in">
-            <Card className="glassmorphism p-6">
-              <h3 className="text-xl font-bold mb-4">Справка и поддержка</h3>
-              
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-card/50">
-                  <h4 className="font-semibold mb-2 flex items-center">
-                    <Icon name="HelpCircle" size={20} className="mr-2 text-primary" />
-                    Что такое DNS Shield?
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    DNS Shield — это приложение для защиты ваших DNS-запросов с помощью шифрования и туннелирования. 
-                    Оно помогает обходить блокировки операторов и защищает вашу приватность в интернете.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-card/50">
-                  <h4 className="font-semibold mb-2 flex items-center">
-                    <Icon name="Shield" size={20} className="mr-2 text-primary" />
-                    Как это работает?
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Приложение шифрует все DNS-запросы по протоколу DNS-over-HTTPS (DoH) и направляет их через защищённые серверы, 
-                    делая невозможным их перехват или блокировку.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-card/50">
-                  <h4 className="font-semibold mb-2 flex items-center">
-                    <Icon name="Mail" size={20} className="mr-2 text-primary" />
-                    Техническая поддержка
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Если у вас возникли проблемы или вопросы, свяжитесь с нами:
-                  </p>
-                  <div className="flex flex-col space-y-2">
-                    <a href="mailto:support@dnsshield.com" className="text-sm text-primary hover:underline">
-                      support@dnsshield.com
-                    </a>
-                    <a href="https://t.me/dnsshield" className="text-sm text-primary hover:underline">
-                      Telegram: @dnsshield
-                    </a>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg gradient-primary">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-white">Версия приложения</p>
-                      <p className="text-sm text-white/80">v1.0.0 (build 2024.11)</p>
-                    </div>
-                    <Icon name="Package" size={32} className="text-white/50" />
-                  </div>
-                </div>
-              </div>
-            </Card>
+          <TabsContent value="help">
+            <HelpTab />
           </TabsContent>
         </Tabs>
       </div>
