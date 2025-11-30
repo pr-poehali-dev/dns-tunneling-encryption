@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -6,13 +6,18 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 type TabType = 'home' | 'settings' | 'status' | 'servers' | 'logs' | 'help';
 
 const Index = () => {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isConnected, setIsConnected] = useState(false);
   const [autoConnect, setAutoConnect] = useState(true);
+  const [speedData, setSpeedData] = useState<Array<{ time: string; speed: number }>>([]);
+  const [latencyData, setLatencyData] = useState<Array<{ time: string; latency: number }>>([]);
 
   const stats = {
     speed: '128.5 Mbps',
@@ -34,6 +39,91 @@ const Index = () => {
     { time: '14:32:10', type: 'warning', message: 'Попытка блокировки обнаружена и обойдена' },
     { time: '14:31:55', type: 'success', message: 'Туннель активирован' }
   ];
+
+  useEffect(() => {
+    if (isConnected) {
+      const interval = setInterval(() => {
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+        
+        setSpeedData(prev => {
+          const newData = [...prev, { time: timeStr, speed: Math.floor(Math.random() * 50) + 100 }];
+          return newData.slice(-20);
+        });
+        
+        setLatencyData(prev => {
+          const newData = [...prev, { time: timeStr, latency: Math.floor(Math.random() * 10) + 8 }];
+          return newData.slice(-20);
+        });
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isConnected]);
+
+  const handleConnectionToggle = () => {
+    const newState = !isConnected;
+    setIsConnected(newState);
+    
+    if (newState) {
+      toast({
+        title: "✅ Подключено",
+        description: "DNS Shield активирован. Ваше соединение защищено.",
+      });
+    } else {
+      toast({
+        title: "⚠️ Отключено",
+        description: "DNS Shield деактивирован. Соединение не защищено.",
+        variant: "destructive"
+      });
+      setSpeedData([]);
+      setLatencyData([]);
+    }
+  };
+
+  const exportStats = (format: 'json' | 'csv' | 'txt') => {
+    const statsData = {
+      timestamp: new Date().toISOString(),
+      status: isConnected ? 'connected' : 'disconnected',
+      speed: stats.speed,
+      latency: stats.latency,
+      uptime: stats.uptime,
+      dataSaved: stats.dataSaved,
+      servers,
+      logs
+    };
+
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+
+    if (format === 'json') {
+      content = JSON.stringify(statsData, null, 2);
+      filename = `dns-shield-stats-${Date.now()}.json`;
+      mimeType = 'application/json';
+    } else if (format === 'csv') {
+      content = `Параметр,Значение\nСтатус,${statsData.status}\nСкорость,${stats.speed}\nЗадержка,${stats.latency}\nВремя работы,${stats.uptime}\nДанные,${stats.dataSaved}`;
+      filename = `dns-shield-stats-${Date.now()}.csv`;
+      mimeType = 'text/csv';
+    } else {
+      content = `DNS Shield - Статистика\n\nДата: ${new Date().toLocaleString()}\nСтатус: ${statsData.status}\nСкорость: ${stats.speed}\nЗадержка: ${stats.latency}\nВремя работы: ${stats.uptime}\nДанные: ${stats.dataSaved}`;
+      filename = `dns-shield-stats-${Date.now()}.txt`;
+      mimeType = 'text/plain';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "📥 Экспорт завершён",
+      description: `Статистика сохранена в формате ${format.toUpperCase()}`
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card">
@@ -95,7 +185,7 @@ const Index = () => {
 
                 <Button
                   size="lg"
-                  onClick={() => setIsConnected(!isConnected)}
+                  onClick={handleConnectionToggle}
                   className={`w-64 h-14 text-lg font-semibold transition-all duration-300 ${
                     isConnected 
                       ? 'gradient-primary hover:opacity-90' 
@@ -108,47 +198,135 @@ const Index = () => {
             </Card>
 
             {isConnected && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
-                <Card className="glassmorphism p-6">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Zap" size={24} className="text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Скорость</p>
-                      <p className="text-xl font-bold">{stats.speed}</p>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="Zap" size={24} className="text-accent" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Скорость</p>
+                        <p className="text-xl font-bold">{stats.speed}</p>
+                      </div>
                     </div>
+                  </Card>
+                  
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="Timer" size={24} className="text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Задержка</p>
+                        <p className="text-xl font-bold">{stats.latency}</p>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="Clock" size={24} className="text-secondary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Время работы</p>
+                        <p className="text-xl font-bold">{stats.uptime}</p>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center space-x-3">
+                      <Icon name="Database" size={24} className="text-accent" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Данные</p>
+                        <p className="text-xl font-bold">{stats.dataSaved}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in">
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold">График скорости</h3>
+                      <Icon name="TrendingUp" size={20} className="text-accent" />
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={speedData}>
+                        <defs>
+                          <linearGradient id="speedGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(199, 89%, 52%)" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="hsl(199, 89%, 52%)" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 6%, 18%)" />
+                        <XAxis dataKey="time" stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(240, 10%, 8%)', 
+                            border: '1px solid hsl(240, 6%, 18%)',
+                            borderRadius: '8px'
+                          }} 
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="speed" 
+                          stroke="hsl(199, 89%, 52%)" 
+                          strokeWidth={2}
+                          fill="url(#speedGradient)" 
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+
+                  <Card className="glassmorphism p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold">График задержки</h3>
+                      <Icon name="Activity" size={20} className="text-primary" />
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={latencyData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 6%, 18%)" />
+                        <XAxis dataKey="time" stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="hsl(240, 5%, 64.9%)" tick={{ fontSize: 12 }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(240, 10%, 8%)', 
+                            border: '1px solid hsl(240, 6%, 18%)',
+                            borderRadius: '8px'
+                          }} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="latency" 
+                          stroke="hsl(263, 70%, 63%)" 
+                          strokeWidth={2}
+                          dot={{ fill: 'hsl(263, 70%, 63%)', r: 3 }}
+                          activeDot={{ r: 5 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Card>
+                </div>
+
+                <Card className="glassmorphism p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">Экспорт статистики</h3>
+                    <Icon name="Download" size={20} className="text-primary" />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={() => exportStats('json')} variant="outline" className="flex-1 min-w-[120px]">
+                      <Icon name="FileJson" size={16} className="mr-2" />
+                      JSON
+                    </Button>
+                    <Button onClick={() => exportStats('csv')} variant="outline" className="flex-1 min-w-[120px]">
+                      <Icon name="Sheet" size={16} className="mr-2" />
+                      CSV
+                    </Button>
+                    <Button onClick={() => exportStats('txt')} variant="outline" className="flex-1 min-w-[120px]">
+                      <Icon name="FileText" size={16} className="mr-2" />
+                      TXT
+                    </Button>
                   </div>
                 </Card>
-                
-                <Card className="glassmorphism p-6">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Timer" size={24} className="text-primary" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Задержка</p>
-                      <p className="text-xl font-bold">{stats.latency}</p>
-                    </div>
-                  </div>
-                </Card>
-                
-                <Card className="glassmorphism p-6">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Clock" size={24} className="text-secondary" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Время работы</p>
-                      <p className="text-xl font-bold">{stats.uptime}</p>
-                    </div>
-                  </div>
-                </Card>
-                
-                <Card className="glassmorphism p-6">
-                  <div className="flex items-center space-x-3">
-                    <Icon name="Database" size={24} className="text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Данные</p>
-                      <p className="text-xl font-bold">{stats.dataSaved}</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
+              </>
             )}
           </TabsContent>
 
